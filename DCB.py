@@ -2,17 +2,29 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import os
-from dotenv import load_dotenv
 from typing import Union
 from discord.ext.commands import CooldownMapping
 from datetime import datetime, timedelta
 from KA import keep_alive  # Add this import
 import asyncio
-# Load environment variables
-load_dotenv()
+from discord.ui import Button, View
+
 TOKEN = os.getenv("TOKEN_SM")
-if not TOKEN:
-    raise ValueError("❌ Bot token not found in .env file")
+print("Debug: Available environment variables:", [k for k in os.environ.keys()])
+print("Debug: Direct token access result:", bool(TOKEN))
+
+if TOKEN:
+    print("✅ Token Found Successfully✅")
+    masked_token = TOKEN[:4] + "*" * (len(TOKEN) - 8) + TOKEN[-4:]
+    print(f"Token check: {masked_token}")
+else:
+    print("\n❌ Token Was Not Found! Debug Info:")
+    print("1. Environment Variable Name: TOKEN_SM")
+    print("2. Available env vars:", [k for k in os.environ.keys() if k.startswith("TOKEN")])
+    print("3. Try running these commands in the terminal:")
+    print("   echo $TOKEN_SM")
+    print("   printenv | grep TOKEN")
+    raise ValueError("TOKEN_SM environment variable is not set or empty!")
 
 
 class Bot(commands.Bot):
@@ -366,6 +378,88 @@ async def restart(interaction: discord.Interaction):
         print(f"Error in restart command: {e}")
         await interaction.edit_original_response(
             content="❌ An error occurred while restarting the bot!"
+        )
+
+class EmbedView(View):
+    def __init__(self):
+        super().__init__(timeout=60)  # 60 seconds timeout
+        
+    @discord.ui.button(label="Main Menu", style=discord.ButtonStyle.blurple, custom_id="main_menu")
+    async def main_menu_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="Embed Creator - Main Menu",
+            description="Select an option below to customize your embed:",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="🎨 Colors", value="Change embed color", inline=True)
+        embed.add_field(name="📝 Content", value="Edit title and description", inline=True)
+        embed.add_field(name="🖼️ Images", value="Add images or thumbnails", inline=True)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Colors", style=discord.ButtonStyle.green, custom_id="colors")
+    async def colors_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="Embed Creator - Colors",
+            description="Available colors:\n\n"
+                       "🔵 Blue\n"
+                       "🔴 Red\n"
+                       "🟢 Green\n"
+                       "🟣 Purple\n"
+                       "⚫ Black\n"
+                       "⚪ White",
+            color=discord.Color.green()
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Content", style=discord.ButtonStyle.gray, custom_id="content")
+    async def content_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="Embed Creator - Content",
+            description="Content options:\n\n"
+                       "📌 Title\n"
+                       "📄 Description\n"
+                       "📋 Fields\n"
+                       "👤 Author\n"
+                       "👣 Footer",
+            color=discord.Color.greyple()
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Images", style=discord.ButtonStyle.red, custom_id="images")
+    async def images_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="Embed Creator - Images",
+            description="Image options:\n\n"
+                       "🖼️ Main Image\n"
+                       "🔳 Thumbnail\n"
+                       "🎴 Author Icon\n"
+                       "🏷️ Footer Icon",
+            color=discord.Color.red()
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+@bot.tree.command(name="embed_creator", description="Create a custom embed message")
+@app_commands.default_permissions(manage_messages=True)
+async def embed_creator(interaction: discord.Interaction):
+    """Create a custom embed using an interactive menu"""
+    try:
+        embed = discord.Embed(
+            title="Embed Creator - Main Menu",
+            description="Select an option below to customize your embed:",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="🎨 Colors", value="Change embed color", inline=True)
+        embed.add_field(name="📝 Content", value="Edit title and description", inline=True)
+        embed.add_field(name="🖼️ Images", value="Add images or thumbnails", inline=True)
+        
+        view = EmbedView()
+        await interaction.response.send_message(embed=embed, view=view)
+        
+    except Exception as e:
+        print(f"Error in embed_creator command: {e}")
+        await interaction.response.send_message(
+            "❌ Failed to create embed creator!",
+            ephemeral=True
         )
 
 if __name__ == "__main__":
